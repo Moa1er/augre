@@ -3,9 +3,6 @@
 // Directives.
 #![warn(rustdoc::broken_intra_doc_links, rust_2018_idioms, clippy::all)]
 #![allow(incomplete_features)]
-#![feature(async_fn_in_trait)]
-#![feature(fs_try_exists)]
-#![feature(vec_into_raw_parts)]
 
 // Modules.
 

@@ -19,8 +19,9 @@ impl HasName for Model {
 impl IsEnsurable for Model {
     async fn is_present(&self) -> Res<bool> {
         let path = self.resolve_path()?;
+        let path_obj = std::path::Path::new(path);
 
-        Ok(std::fs::try_exists(path)?)
+        Ok(path_obj.exists())
     }
 
     async fn make_present(&self) -> Res<()> {
