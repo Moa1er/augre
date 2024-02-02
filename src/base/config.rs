@@ -32,9 +32,16 @@ impl Config {
     /// Alternatively, this method will fallback to environment variables with the
     /// prefix `RTZ` (e.g., `RTZ_BIND_ADDRESS`).
     pub fn new(data_path: &str, mode: Mode) -> Res<Self> {
+        // Determine the directory of the current executable
+        let exe_path = std::env::current_exe()?;
+        let exe_dir = exe_path.parent().unwrap_or_else(|| std::path::Path::new("")).to_str().unwrap_or("").to_string();
+
         let builder = config::Config::builder()
-            .add_source(File::with_name(&format!("{}/config.toml", data_path)).required(false))
+            .add_source(File::with_name(&format!("{}/config.toml", exe_dir)).required(false))
             .add_source(Environment::with_prefix("augre"));
+        // let builder = config::Config::builder()
+        //     .add_source(File::with_name(&format!("{}/config.toml", data_path)).required(false))
+        //     .add_source(Environment::with_prefix("augre"));
 
         let optional_config: OptionalConfig = builder.build()?.try_deserialize()?;
 

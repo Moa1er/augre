@@ -1,3 +1,4 @@
 /target
 .hidden/
 .augre/
+config.toml
