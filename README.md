@@ -69,8 +69,7 @@ cria_port = 3000
 
 ## Problems:
 
-"An error (type: tokens) occurred on the API backend: Request too large for gpt-4 in organization org-WwKW6fn63kZPGicsCZIPrMJY on tokens per min (TPM): Limit Y, Requested X. The input or output tokens must be reduced in order to run successfully. Visit https://platform.openai.com/account/rate-limits to learn more."
-In this case, too bad, no models exists yet with as much token as needed. Try a model with a bigger amount of token available
+Feel free to write any issues in the appropriate tab.
 
 ## License
 
