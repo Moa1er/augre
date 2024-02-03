@@ -5,6 +5,7 @@ use chatgpt::prelude::{ChatGPT, ModelConfiguration, ChatGPTEngine};
 use url::Url;
 
 use crate::base::types::{HasName, IsEnsurable, Mode, Res, Void};
+use crate::services::gpt;
 
 use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
 use reqwest::Client;
@@ -12,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 static NAME: &str = "gpt_sdk";
 const URI: &str = "https://api.openai.com/v1/chat/completions";
-const MODEL: &str = "gpt-3.5-turbo";
+const DEFAULT_MODEL: &str = "gpt-3.5-turbo";
 
 #[derive(Serialize, Deserialize, Debug)]
 struct OAIRequest {
@@ -62,7 +63,20 @@ impl IsEnsurable for Gpt {
 }
 
 impl Gpt {
-    pub async fn review(&self, diff: &str) -> Res<String> {
+    pub async fn review(&self, diff: &str, gpt_model: Option<String>) -> Res<String> {
+        let model_used: String;
+
+        match gpt_model {
+            Some(value) => {
+                model_used = value.clone();
+                println!("Model used is now: {}", value)
+            },
+            None => {
+                model_used = DEFAULT_MODEL.to_string();
+                println!("Default model used: {}", DEFAULT_MODEL.to_string());
+            },
+        }
+
         let client = Client::new();
         let openai_key = self.resolve_key()?;
 
@@ -81,7 +95,7 @@ impl Gpt {
         let message = REVIEW_PROMPT.replace("{{diff}}", diff);
 
         let req = OAIRequest {
-            model: String::from(MODEL),
+            model: model_used,
             messages: vec![
                 prompt_message,
                 Message {

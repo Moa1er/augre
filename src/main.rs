@@ -17,7 +17,7 @@ use services::{git::Git, gpt::Gpt, cria::Cria};
 use termimad::MadSkin;
 use yansi::Paint;
 
-use crate::services::{docker::Docker, model::Model};
+use crate::services::{docker::Docker, gpt, model::Model};
 
 // Commands.
 
@@ -46,17 +46,20 @@ enum Command {
     Review {
         test: String,
         test2: String,
+        gpt_model: Option<String>,
     },
 
     /// Outputs description for making PR (from first commit to last) + reviews and give advices on the changes
     PRDescription{
         original_branch_name: String,
         working_branch_name: String,
+        gpt_model: Option<String>,
     },
 
     PRAndReview{
         original_branch_name: String,
         working_branch_name: String,
+        gpt_model: Option<String>,
     },
 
     /// Gives a response to the specified prompt.
@@ -86,9 +89,9 @@ async fn start(args: Args) -> Void {
     let confirm = !args.skip_confirm;
 
     match args.command {
-        Some(Command::Review{ test, test2 }) => review(&config, confirm).await?,
-        Some(Command::PRDescription{ original_branch_name, working_branch_name }) => pr_description(&config, confirm, &original_branch_name, &working_branch_name).await?,
-        Some(Command::PRAndReview{ original_branch_name, working_branch_name }) => pr_description_and_review(&config, confirm, &original_branch_name, &working_branch_name).await?,
+        Some(Command::Review{ test, test2, gpt_model }) => review(&config, confirm, gpt_model).await?,
+        Some(Command::PRDescription{ original_branch_name, working_branch_name, gpt_model }) => pr_description(&config, confirm, &original_branch_name, &working_branch_name, gpt_model).await?,
+        Some(Command::PRAndReview{ original_branch_name, working_branch_name, gpt_model }) => pr_description_and_review(&config, confirm, &original_branch_name, &working_branch_name, gpt_model).await?,
         Some(Command::Ask { prompt }) => ask(&config, confirm, &prompt).await?,
         Some(Command::Stop) => stop(&config, confirm).await?,
         None => return Err(anyhow::anyhow!("No command specified.")),
@@ -97,16 +100,15 @@ async fn start(args: Args) -> Void {
     Ok(())
 }
 
-async fn pr_description_and_review(config: &Config, confirm: bool, original_branch_name: &str, working_branch_name: &str) -> Void {
+async fn pr_description_and_review(config: &Config, confirm: bool, original_branch_name: &str, working_branch_name: &str, gpt_model: Option<String>) -> Void {
     println!();
-    pr_description(&config, confirm, &original_branch_name, &working_branch_name).await?;
-    review(&config, confirm).await?;
-
+    pr_description(&config, confirm, &original_branch_name, &working_branch_name, gpt_model.clone()).await?;
+    review(&config, confirm, gpt_model.clone()).await?;
     Ok(())
 }
 
 
-async fn pr_description(config: &Config, confirm: bool, original_branch_name: &str, working_branch_name: &str) -> Void {
+async fn pr_description(config: &Config, confirm: bool, original_branch_name: &str, working_branch_name: &str, gpt_model: Option<String>) -> Void {
     println!();
 
     maybe_prepare_local(config, confirm).await?;
@@ -125,7 +127,7 @@ async fn pr_description(config: &Config, confirm: bool, original_branch_name: &s
     println!(" {}", Paint::green("✔️"));
 
     println!("Getting review ...");
-    let response = gpt.review(&diff).await?.trim().to_string();
+    let response = gpt.review(&diff, gpt_model).await?.trim().to_string();
     println!("{}", Paint::green("✔️"));
 
     println!();
@@ -136,7 +138,7 @@ async fn pr_description(config: &Config, confirm: bool, original_branch_name: &s
     Ok(())
 }
 
-async fn review(config: &Config, confirm: bool) -> Void {
+async fn review(config: &Config, confirm: bool, gpt_model: Option<String>) -> Void {
     println!();
 
     maybe_prepare_local(config, confirm).await?;
@@ -154,7 +156,7 @@ async fn review(config: &Config, confirm: bool) -> Void {
     println!(" {}", Paint::green("✔️"));
 
     println!("Getting review ...");
-    let response = gpt.review(&diff).await?.trim().to_string();
+    let response = gpt.review(&diff, gpt_model).await?.trim().to_string();
     println!("{}", Paint::green("✔️"));
 
     println!();
