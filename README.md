@@ -9,44 +9,24 @@
 # augre
 
 An LLM-powered (CodeLlama or OpenAI) local diff code review tool.
+This particular fork is mainly focused on OpenAi, not a lot will work with Llama
 
 ## Binary Usage
 
 ### Dependencies :
 
+You need cargo installed to compile the code
+
 Ubuntu: sudo apt install libssl-dev
 Arch: sudo pacman -S openssl (not tested)
+Windows: are you on windows ? haha use wsl2 :smile:
 
 ### Install
 
-Windows:
+STEP 1: Clone the repo
 
-```powershell
-$ iwr https://github.com/twitchax/augre/releases/latest/download/augre_x86_64-pc-windows-gnu.zip
-$ Expand-Archive augre_x86_64-pc-windows-gnu.zip -DestinationPath C:\Users\%USERNAME%\AppData\Local\Programs\augre
-```
+STEP 2: run the script install.sh (it will ask for sudo password it is only to copy the files to /opt/) (feel free to check the script) 
 
-Mac OS (Apple Silicon):
-
-```bash
-$ curl -LO https://github.com/twitchax/augre/releases/latest/download/augre_aarch64-apple-darwin.zip
-$ unzip augre_aarch64-apple-darwin.zip -d /usr/local/bin
-$ chmod a+x /usr/local/bin/augre
-```
-
-Linux:
-
-```bash
-$ curl -LO https://github.com/twitchax/augre/releases/latest/download/augre_x86_64-unknown-linux-gnu.zip
-$ unzip augre_x86_64-unknown-linux-gnu.zip -d /usr/local/bin
-$ chmod a+x /usr/local/bin/augre
-```
-
-Cargo:
-
-```bash
-$ cargo install augre
-```
 
 ### Help Docs
 
@@ -55,10 +35,13 @@ $ augre -h
 Usage: augre [OPTIONS] [COMMAND]
 
 Commands:
-  review  Performs a code review of the current `git diff HEAD^`
-  ask     Gives a response to the specified prompt
-  stop    Stop all of the background services
-  help    Print this message or the help of the given subcommand(s)
+  review          Performs a code review from parent_branche(arg1) to child_branch(arg2)
+  pr-description  Performs description for making PR from parent_branche(arg1) to child_branch(arg2)
+  pr-and-review   Performs description for making PR from parent_branche(arg1) to child_branch(arg2) + reviews it
+  commit-message  Gives you a comment for the last changes for your future commit
+  ask             Gives a response to the specified prompt
+  stop            Stop all of the background services
+  help            Print this message or the help of the given subcommand(s)
 
 Options:
   -d, --data-path <DATA_PATH>  The path to the data directory [default: .augre]
@@ -68,18 +51,25 @@ Options:
   -V, --version                Print version
 ```
 
-## Example Config
+For the commands review, pr-description, pr-and-review and commit-message, you can specify the version of chatgpt to use. By default it is gpt-3.5-turbo.
+
+I highly recommand to use the command "augre review help" to help you (or any other command than "review")
+
+## Example Config (if you use llama but remember this is not a fork that uses llama)
 
 ```toml
 mode = "LocalGpu"
 model_url = "https://huggingface.co/TheBloke/CodeLlama-13B-Instruct-GGML/resolve/main/codellama-13b-instruct.ggmlv3.Q3_K_M.bin"
 cria_port = 3000
 ```
+
 ## Problems:
 
 "An error (type: tokens) occurred on the API backend: Request too large for gpt-4 in organization org-WwKW6fn63kZPGicsCZIPrMJY on tokens per min (TPM): Limit Y, Requested X. The input or output tokens must be reduced in order to run successfully. Visit https://platform.openai.com/account/rate-limits to learn more."
-In this case, too bad, no models exists yet with as much token as needed
+In this case, too bad, no models exists yet with as much token as needed. Try a model with a bigger amount of token available
 
 ## License
 
 MIT
+
+I am the license
