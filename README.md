@@ -12,6 +12,11 @@ An LLM-powered (CodeLlama or OpenAI) local diff code review tool.
 
 ## Binary Usage
 
+### Dependencies :
+
+Ubuntu: sudo apt install libssl-dev
+Arch: sudo pacman -S openssl (not tested)
+
 ### Install
 
 Windows:
@@ -70,6 +75,10 @@ mode = "LocalGpu"
 model_url = "https://huggingface.co/TheBloke/CodeLlama-13B-Instruct-GGML/resolve/main/codellama-13b-instruct.ggmlv3.Q3_K_M.bin"
 cria_port = 3000
 ```
+## Problems:
+
+"An error (type: tokens) occurred on the API backend: Request too large for gpt-4 in organization org-WwKW6fn63kZPGicsCZIPrMJY on tokens per min (TPM): Limit Y, Requested X. The input or output tokens must be reduced in order to run successfully. Visit https://platform.openai.com/account/rate-limits to learn more."
+In this case, too bad, no models exists yet with as much token as needed
 
 ## License
 

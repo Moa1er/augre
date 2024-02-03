@@ -2,3 +2,4 @@
 .hidden/
 .augre/
 config.toml
+install_custom.sh

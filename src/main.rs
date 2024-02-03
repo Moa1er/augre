@@ -43,7 +43,21 @@ struct Args {
 #[derive(Subcommand, Debug)]
 enum Command {
     /// Performs a code review of the current `git diff HEAD^`.
-    Review,
+    Review {
+        test: String,
+        test2: String,
+    },
+
+    /// Outputs description for making PR (from first commit to last) + reviews and give advices on the changes
+    PRDescription{
+        original_branch_name: String,
+        working_branch_name: String,
+    },
+
+    PRAndReview{
+        original_branch_name: String,
+        working_branch_name: String,
+    },
 
     /// Gives a response to the specified prompt.
     Ask {
@@ -72,11 +86,52 @@ async fn start(args: Args) -> Void {
     let confirm = !args.skip_confirm;
 
     match args.command {
-        Some(Command::Review) => review(&config, confirm).await?,
+        Some(Command::Review{ test, test2 }) => review(&config, confirm).await?,
+        Some(Command::PRDescription{ original_branch_name, working_branch_name }) => pr_description(&config, confirm, &original_branch_name, &working_branch_name).await?,
+        Some(Command::PRAndReview{ original_branch_name, working_branch_name }) => pr_description_and_review(&config, confirm, &original_branch_name, &working_branch_name).await?,
         Some(Command::Ask { prompt }) => ask(&config, confirm, &prompt).await?,
         Some(Command::Stop) => stop(&config, confirm).await?,
         None => return Err(anyhow::anyhow!("No command specified.")),
     }
+
+    Ok(())
+}
+
+async fn pr_description_and_review(config: &Config, confirm: bool, original_branch_name: &str, working_branch_name: &str) -> Void {
+    println!();
+    pr_description(&config, confirm, &original_branch_name, &working_branch_name).await?;
+    review(&config, confirm).await?;
+
+    Ok(())
+}
+
+
+async fn pr_description(config: &Config, confirm: bool, original_branch_name: &str, working_branch_name: &str) -> Void {
+    println!();
+
+    maybe_prepare_local(config, confirm).await?;
+
+    let git = Git::default();
+    let gpt = Gpt::new(&config.openai_endpoint, &config.openai_key, config.mode);
+
+    git.ensure(confirm).await?;
+    gpt.ensure(confirm).await?;
+
+    println!();
+
+    // print!("Getting diffs between ", original_branch_name, " and ", working_branch_name);
+    print!("{}", format!("Getting diffs between {} and {}", original_branch_name, working_branch_name));
+    let diff = Git::diff_custom(original_branch_name, working_branch_name).await?;
+    println!(" {}", Paint::green("✔️"));
+
+    println!("Getting review ...");
+    let response = gpt.review(&diff).await?.trim().to_string();
+    println!("{}", Paint::green("✔️"));
+
+    println!();
+
+    let skin = MadSkin::default();
+    skin.print_text(&response);
 
     Ok(())
 }

@@ -65,4 +65,20 @@ impl Git {
 
         Ok(stdout)
     }
+
+    pub async fn diff_custom(original_branch_name: &str, working_branch_name: &str) -> Res<String> {
+        let output = Command::new("git")
+            .arg("diff")
+            .arg(format!("{}..{}", original_branch_name, working_branch_name))
+            .output().await
+            .context(format!("Unable to run 'git diff {}..{}'", original_branch_name, working_branch_name))?;
+
+        if !output.status.success() {
+            return Err(anyhow::Error::msg(format!("The exit code of the 'git diff {}..{}' operation was not successful.", original_branch_name, working_branch_name)));
+        }
+
+        let stdout = String::from_utf8(output.stdout)?;
+
+        Ok(stdout)
+    }
 }
