@@ -15,7 +15,9 @@ This particular fork is mainly focused on OpenAi, not a lot will work with Llama
 
 ### Dependencies :
 
-You need cargo installed to compile the code
+You need cargo installed to compile the code: https://itsfoss.com/install-rust-cargo-ubuntu-linux/
+
+Also, you need openssl:
 
 Ubuntu: sudo apt install libssl-dev
 
