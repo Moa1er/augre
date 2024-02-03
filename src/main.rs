@@ -42,23 +42,29 @@ struct Args {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Performs a code review of the current `git diff HEAD^`.
+    /// Performs a code review from parent_branche(arg1) to child_branch(arg2)
     Review {
-        test: String,
-        test2: String,
+        original_branch_name: String,
+        working_branch_name: String,
         gpt_model: Option<String>,
     },
 
-    /// Outputs description for making PR (from first commit to last) + reviews and give advices on the changes
+    /// Performs description for making PR from parent_branche(arg1) to child_branch(arg2)
     PRDescription{
         original_branch_name: String,
         working_branch_name: String,
         gpt_model: Option<String>,
     },
 
+    ///Performs description for making PR from parent_branche(arg1) to child_branch(arg2) + reviews it
     PRAndReview{
         original_branch_name: String,
         working_branch_name: String,
+        gpt_model: Option<String>,
+    },
+
+    /// Gives you a comment for the last changes for your future commit
+    CommitMessage{
         gpt_model: Option<String>,
     },
 
@@ -89,9 +95,10 @@ async fn start(args: Args) -> Void {
     let confirm = !args.skip_confirm;
 
     match args.command {
-        Some(Command::Review{ test, test2, gpt_model }) => review(&config, confirm, gpt_model).await?,
+        Some(Command::Review{original_branch_name, working_branch_name, gpt_model }) => review(&config, confirm, &original_branch_name, &working_branch_name, gpt_model).await?,
         Some(Command::PRDescription{ original_branch_name, working_branch_name, gpt_model }) => pr_description(&config, confirm, &original_branch_name, &working_branch_name, gpt_model).await?,
         Some(Command::PRAndReview{ original_branch_name, working_branch_name, gpt_model }) => pr_description_and_review(&config, confirm, &original_branch_name, &working_branch_name, gpt_model).await?,
+        Some(Command::CommitMessage{ gpt_model }) => commit_msg(&config, confirm, gpt_model).await?,
         Some(Command::Ask { prompt }) => ask(&config, confirm, &prompt).await?,
         Some(Command::Stop) => stop(&config, confirm).await?,
         None => return Err(anyhow::anyhow!("No command specified.")),
@@ -102,13 +109,57 @@ async fn start(args: Args) -> Void {
 
 async fn pr_description_and_review(config: &Config, confirm: bool, original_branch_name: &str, working_branch_name: &str, gpt_model: Option<String>) -> Void {
     println!();
+    println!("Giving the description first: ");
     pr_description(&config, confirm, &original_branch_name, &working_branch_name, gpt_model.clone()).await?;
-    review(&config, confirm, gpt_model.clone()).await?;
+    
+    println!();
+    println!("Giving the review: ");
+    review(&config, confirm, &original_branch_name, &working_branch_name, gpt_model.clone()).await?;
+    Ok(())
+}
+
+async fn commit_msg(
+    config: &Config, 
+    confirm: bool, 
+    gpt_model: Option<String>,
+)-> Void {
+    println!();
+
+    maybe_prepare_local(config, confirm).await?;
+
+    let git = Git::default();
+    let gpt = Gpt::new(&config.openai_endpoint, &config.openai_key, config.mode);
+
+    git.ensure(confirm).await?;
+    gpt.ensure(confirm).await?;
+
+    println!();
+
+    // print!("Getting diffs between ", original_branch_name, " and ", working_branch_name);
+    print!("{}", format!("Getting code diff from last changes..."));
+    let diff = Git::diff().await?;
+    println!("{}", Paint::green("✔️"));
+
+    print!("Getting commit msg ...");
+    let response = gpt.make_req_with_prompt(&diff, gpt_model, "commit_msg").await?.trim().to_string();
+    println!("{}", Paint::green("✔️"));
+
+    println!();
+    println!("Commit msg is:"); 
+    let skin = MadSkin::default();
+    skin.print_text(&response);
+
     Ok(())
 }
 
 
-async fn pr_description(config: &Config, confirm: bool, original_branch_name: &str, working_branch_name: &str, gpt_model: Option<String>) -> Void {
+async fn pr_description(
+    config: &Config, 
+    confirm: bool, 
+    original_branch_name: &str,
+    working_branch_name: &str, 
+    gpt_model: Option<String>
+    ) -> Void {
     println!();
 
     maybe_prepare_local(config, confirm).await?;
@@ -124,13 +175,14 @@ async fn pr_description(config: &Config, confirm: bool, original_branch_name: &s
     // print!("Getting diffs between ", original_branch_name, " and ", working_branch_name);
     print!("{}", format!("Getting diffs between {} and {}", original_branch_name, working_branch_name));
     let diff = Git::diff_custom(original_branch_name, working_branch_name).await?;
-    println!(" {}", Paint::green("✔️"));
+    println!("{}", Paint::green("✔️"));
 
-    println!("Getting review ...");
-    let response = gpt.review(&diff, gpt_model).await?.trim().to_string();
+    print!("Getting description ...");
+    let response = gpt.make_req_with_prompt(&diff, gpt_model, "description").await?.trim().to_string();
     println!("{}", Paint::green("✔️"));
 
     println!();
+    println!("Description is:"); 
 
     let skin = MadSkin::default();
     skin.print_text(&response);
@@ -138,7 +190,13 @@ async fn pr_description(config: &Config, confirm: bool, original_branch_name: &s
     Ok(())
 }
 
-async fn review(config: &Config, confirm: bool, gpt_model: Option<String>) -> Void {
+async fn review(
+    config: &Config, 
+    confirm: bool, 
+    original_branch_name: &str,
+    working_branch_name: &str, 
+    gpt_model: Option<String>
+    ) -> Void {
     println!();
 
     maybe_prepare_local(config, confirm).await?;
@@ -152,15 +210,15 @@ async fn review(config: &Config, confirm: bool, gpt_model: Option<String>) -> Vo
     println!();
 
     print!("Getting diff ...");
-    let diff = Git::diff().await?;
-    println!(" {}", Paint::green("✔️"));
+    let diff = Git::diff_custom(original_branch_name, working_branch_name).await?;
+    println!("{}", Paint::green("✔️"));
 
-    println!("Getting review ...");
-    let response = gpt.review(&diff, gpt_model).await?.trim().to_string();
+    print!("Getting review ...");
+    let response = gpt.make_req_with_prompt(&diff, gpt_model, "review").await?.trim().to_string();
     println!("{}", Paint::green("✔️"));
 
     println!();
-
+    println!("Review is:"); 
     let skin = MadSkin::default();
     skin.print_text(&response);
 

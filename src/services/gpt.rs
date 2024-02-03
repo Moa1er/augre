@@ -63,7 +63,7 @@ impl IsEnsurable for Gpt {
 }
 
 impl Gpt {
-    pub async fn review(&self, diff: &str, gpt_model: Option<String>) -> Res<String> {
+    pub async fn make_req_with_prompt(&self, diff: &str, gpt_model: Option<String>, mode: &str)-> Res<String> {
         let model_used: String;
 
         match gpt_model {
@@ -92,7 +92,17 @@ impl Gpt {
             content: String::from("You're a code reviewer or you also comment the code depending on the prompt\n\n"),
         };
         
-        let message = REVIEW_PROMPT.replace("{{diff}}", diff);
+        let message;
+
+        if (mode == "description"){
+            message = PR_DESCRIPTION_PROMPT.replace("{{diff}}", diff);
+        }else if (mode == "review"){
+            message = REVIEW_PROMPT.replace("{{diff}}", diff);
+        }else if(mode == "commit_msg"){
+            message = COMMIT_MSG_PROMPT.replace("{{diff}}", diff);
+        }else{ // by default uses review prompt
+            message = REVIEW_PROMPT.replace("{{diff}}", diff);
+        }
 
         let req = OAIRequest {
             model: model_used,
@@ -129,8 +139,7 @@ impl Gpt {
             }
         };
         let message = res?.choices.last().ok_or(anyhow::anyhow!("No choices returned"))?.message.content.clone();
-        println!("{}", message);
-        // Ok(res.choices[0].message.content.clone())
+
         Ok(message)
     }
 
@@ -174,6 +183,17 @@ impl Gpt {
 }
 
 // Statics.
+static COMMIT_MSG_PROMPT: &str = r#"
+    Make a short one line commit msg explaining what has been done in the last changes (no need for a sentence, go straight to the point).
+    The changes are : '{{diff}}'
+"#;
+
+static PR_DESCRIPTION_PROMPT: &str = r#"
+Add a brief description of the changes this PR will bring to the code. 
+If you need to clarify/explain some changes beforehand to the reviewer, mention it here.
+
+The diffs are the following : '{{diff}}'
+"#;
 
 static REVIEW_PROMPT: &str = r#"
 Please perform a code review of the following diff (produced by `git diff` on my code), and provide suggestions for improvement:
