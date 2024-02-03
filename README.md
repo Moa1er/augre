@@ -18,7 +18,9 @@ This particular fork is mainly focused on OpenAi, not a lot will work with Llama
 You need cargo installed to compile the code
 
 Ubuntu: sudo apt install libssl-dev
+
 Arch: sudo pacman -S openssl (not tested)
+
 Windows: are you on windows ? haha use wsl2 :smile:
 
 ### Install
