@@ -59,8 +59,12 @@ For the commands review, pr-description, pr-and-review and commit-message, you c
 
 I highly recommand to use the command "augre review help" to help you (or any other command than "review")
 
-## Example Config (if you use llama but remember this is not a fork that uses llama)
+## Example config.toml if you use chatgpt API
+```toml
+openai_key = "your key here"
+```
 
+## Example condig.toml if you use llama but remember this is not a fork that is interresting for llama users
 ```toml
 mode = "LocalGpu"
 model_url = "https://huggingface.co/TheBloke/CodeLlama-13B-Instruct-GGML/resolve/main/codellama-13b-instruct.ggmlv3.Q3_K_M.bin"
